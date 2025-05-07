@@ -12,7 +12,7 @@ Deno.test("Playing things", async (t) => {
       encodeWAV(samples);
 
       console.log("Playing generated WAV file...");
-      const process = new Deno.Command("aplay", {
+      const process = new Deno.Command("afplay", {
         args: ["output.wav"],
         stdout: "inherit",
         stderr: "inherit",
