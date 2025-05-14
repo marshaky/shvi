@@ -9,7 +9,12 @@ Deno.test("Recursion", async (t) => {
       // Otherwise, return the sum of the previous two Fibonacci numbers
 
       const fibonacci = (n) => {
-        throw new Error("Not implemented");
+        if (n <= 0) {
+          return 0;
+        } else if (n == 1) {
+          return 1;
+        }
+        return fibonacci(n - 1) + fibonacci(n - 2);
       };
 
       const generalResult = fibonacci(5);
@@ -37,11 +42,17 @@ Deno.test("Recursion", async (t) => {
           if (str.length === 0) {
             return acc;
           }
+
           const [first, ...rest] = str;
 
-          fail(
-            "You need to implement the logic to reverse the capitalization",
-          );
+          let flippedChar = first;
+
+          if (first == first.toUpperCase())
+            flippedChar = first.toLowerCase();
+          else
+            flippedChar = first.toUpperCase();
+
+          return loop(rest, acc + flippedChar);
         };
 
         return loop(str, "");
@@ -64,7 +75,15 @@ Deno.test("Recursion", async (t) => {
       // When all the elements are checked, return the maximum value
 
       const max = (numbers) => {
-        throw new Error("Not implemented");
+        if (numbers.length === 0)
+          return -Infinity;
+        if (numbers.length === 1)
+          return numbers[0];
+
+        const [first, ...rest] = numbers;
+        const maxNum = max(rest);
+
+        return maxNum > first ? maxNum : first;
       };
 
       const maxOfEmptyList = max([]);
@@ -90,7 +109,11 @@ Deno.test("Recursion", async (t) => {
       //  If it is not, add the first character to the result and move to the next character of the string
 
       const strip = (str, substr) => {
-        throw new Error("Not implemented");
+        if (substr.length == 0) {
+          return str;
+        }
+
+
       };
 
       const generalResult = strip("Skies are grey in Greece", "re");
@@ -111,7 +134,10 @@ Deno.test("Recursion", async (t) => {
       // Move to the next element and repeat the process
 
       const flatten = (arr) => {
-        throw new Error("Not implemented");
+        if (arr.length == 0) {
+          return [];
+        }
+
       };
 
       const generalResult = flatten([1, [2, 3], [4, [5]]]);
