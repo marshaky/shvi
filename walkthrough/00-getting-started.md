@@ -8,7 +8,7 @@ To get started we need to set up our tools first. If you have already forked and
 
 Once you have the repo in your machine, open it with VS code. It will suggest a number of extensions - install them. Make sure deno runs and the syntax highlighting works. Run the following command in the terminal at the root of the repo:
 
-    deno test --watch --allow-all
+    c
 
 The line above should run successfully. Keep it running in the background, as it will watch for changes in the code and run the tests automatically as you move through the steps.
 
