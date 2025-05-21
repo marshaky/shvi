@@ -71,19 +71,34 @@ const typeify = (token) => {
 };
 
 const tokenize = (input) => {
-  const array = [];
-
-  if (Array.from(input) == "") {
-    return [];
-  }
-  const tokens = input.split(" ");
-
-  tokens.forEach((token) => {
-    if (!isNaN(token)) {
-      array.push(parseFloat(token));
-    } else {
-      array.push(atom(token));
+  const chars = Array.from(input);
+  const loop = (chars, current = '', acc = []) => {
+    if (chars.length === 0) {
+      if (current.trim() !== '') {
+        acc.push(isNaN(current) ? atom(current) : parseFloat(current));
+      }
+      return acc;
     }
-  });
-  return array;
+    const [first, ...rest] = chars;
+    switch (first) {
+      case ' ':
+        if (current.trim() !== '') {
+          acc.push(isNaN(current) ? atom(current) : parseFloat(current));
+        }
+        return loop(rest, '', acc);
+        case '(':
+        case ')':
+          if (current.trim() !== '')
+            ac.push(isNaN(current) ? atom(current) : parseFloat(current));
+          acc.push(first);
+          return loop(rest, '', acc)
+      default:
+        return loop(rest, current + first, acc);
+    }
+  };
+  return loop(chars);
+}
+
+const evaluate = (expression) => {
+  throw new Error("TBI");
 };
