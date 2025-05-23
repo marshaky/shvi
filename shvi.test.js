@@ -44,6 +44,7 @@ Deno.test("Playing things", async (t) => {
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
+      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
@@ -59,6 +60,7 @@ Deno.test("Playing things", async (t) => {
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
+      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
@@ -74,6 +76,7 @@ Deno.test("Playing things", async (t) => {
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
+      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
@@ -89,6 +92,28 @@ Deno.test("Playing things", async (t) => {
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
+      Deno.removeSync("output.wav");
+    },
+    ignore: true,
+  });
+
+  await t.step({
+    name: "playing the still dre in loop",
+    fn: async () => {
+      const music = `
+            (repeat 8
+              (sequence
+                (tone 261.63 80) (tone 329.63 130) (tone 440.00 360)))
+          `;
+
+      const tokens = tokenize(music);
+      const samples = evaluate(tokens[0]);
+
+      encodeWAV(samples);
+
+      console.log("Playing generated WAV file...");
+      await play("output.wav");
+      Deno.removeSync("output.wav");
     },
     ignore: false,
   });
