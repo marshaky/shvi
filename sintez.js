@@ -67,38 +67,54 @@ async function encodeWAV(
 const atom = (name) => Symbol.for(name);
 
 const typeify = (token) => {
-  throw new Error("Not implemented");
+  if (token === "") {
+    return null; 
+  }
+  if (!isNaN(token)) {
+    return parseFloat(token);
+  }
+  return atom(token);
 };
 
 const tokenize = (input) => {
-  const chars = Array.from(input);
-  const loop = (chars, current = '', acc = []) => {
-    if (chars.length === 0) {
-      if (current.trim() !== '') {
-        acc.push(isNaN(current) ? atom(current) : parseFloat(current));
+  if (input.trim() === "") {
+    return [];
+  }
+
+  const graphemes = Array.from(input)
+  const loop = (
+    progressiveScope,
+    [graphemeAtHand, ...restOfGraphemes],
+    tokenSoFar = "",
+  ) => {
+    if (graphemeAtHand === undefined) {
+      if (tokenSoFar.length > 0) {
+        progressiveScope[0].push(typeify(tokenSoFar));
       }
-      return acc;
+      return progressiveScope[0]; 
     }
-    const [first, ...rest] = chars;
-    switch (first) {
-      case ' ':
-        if (current.trim() !== '') {
-          acc.push(isNaN(current) ? atom(current) : parseFloat(current));
-        }
-        return loop(rest, '', acc);
-        case '(':
-        case ')':
-          if (current.trim() !== '')
-            ac.push(isNaN(current) ? atom(current) : parseFloat(current));
-          acc.push(first);
-          return loop(rest, '', acc)
+    const newScopes = []
+    switch (true) {
+      case graphemeAtHand === ' ':
+        if (tokenSoFar.length > 0)
+          progressiveScope[0].push(typeify(tokenSoFar));
+        return loop(progressiveScope, restOfGraphemes, "");
+      case graphemeAtHand === '(':
+        if (tokenSoFar.length > 0)
+            progressiveScope[0].push(typeify(tokenSoFar));
+        progressiveScope[0].push(newScopes)
+        return loop([newScopes, ...progressiveScope], restOfGraphemes, "")
+      case graphemeAtHand === ')':
+        if (tokenSoFar.length > 0)
+          progressiveScope[0].push(typeify(tokenSoFar));
+        return loop(progressiveScope.slice(1), restOfGraphemes, "");
       default:
-        return loop(rest, current + first, acc);
+        return loop(progressiveScope, restOfGraphemes, tokenSoFar + graphemeAtHand); 
     }
   };
-  return loop(chars);
-}
+  return loop([[]], graphemes);
+};
 
 const evaluate = (expression) => {
-  throw new Error("TBI");
+  throw new Error("Not implemented");
 };
