@@ -11,16 +11,14 @@ export { encodeWAV, evaluate, generatePCM, tokenize, typeify };
 function generatePCM(frequency, duration) {
   const amplitude = 32767;
   const sampleRate = 44100;
-
   const numSamples = Math.floor(sampleRate * (duration / 1000));
 
   const samples = [];
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
-    const sample = amplitude * Math.sin(2 * Math.PI * frequency * t);
+    const sample = Math.round(amplitude * Math.sin(2 * Math.PI * frequency * t));
     samples.push(sample);
   }
-
   return samples;
 }
 
@@ -46,75 +44,80 @@ async function encodeWAV(
   writeString(12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);
-  view.setUint16(22, 2, true);
+  view.setUint16(22, 1, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 4, true);
-  view.setUint16(32, 4, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
   view.setUint16(34, 16, true);
   writeString(36, "data");
   view.setUint32(40, dataSize, true);
-
+  
   for (let i = 0; i < samples.length; i++) {
     view.setInt16(headerSize + i * 2, samples[i], true);
   }
-
-  await Deno.writeFile(
-    output,
-    new Uint8Array(buffer),
-  );
+  await Deno.writeFile(output, new Uint8Array(buffer));
 }
 
 const atom = (name) => Symbol.for(name);
 
 const typeify = (token) => {
-  if (token === "") {
-    return null; 
-  }
-  if (!isNaN(token)) {
+  if (token === "")
+    return null;
+  if (!isNaN(token))
     return parseFloat(token);
-  }
   return atom(token);
 };
 
 const tokenize = (input) => {
-  if (input.trim() === "") {
-    return [];
-  }
+  if (input.trim() === "") return [];
 
-  const graphemes = Array.from(input)
-  const loop = (
-    progressiveScope,
-    [graphemeAtHand, ...restOfGraphemes],
-    tokenSoFar = "",
-  ) => {
+  const graphemes = Array.from(input);
+  const loop = (progressiveScope, [graphemeAtHand, ...rest], tokenSoFar = "") => {
     if (graphemeAtHand === undefined) {
-      if (tokenSoFar.length > 0) {
+      if (tokenSoFar.length > 0) 
         progressiveScope[0].push(typeify(tokenSoFar));
-      }
-      return progressiveScope[0]; 
+      return progressiveScope[0];
     }
-    const newScopes = []
+    const newScopes = [];
     switch (true) {
       case graphemeAtHand === ' ':
-        if (tokenSoFar.length > 0)
+        if (tokenSoFar.length > 0) 
           progressiveScope[0].push(typeify(tokenSoFar));
-        return loop(progressiveScope, restOfGraphemes, "");
+        return loop(progressiveScope, rest, "");
       case graphemeAtHand === '(':
-        if (tokenSoFar.length > 0)
-            progressiveScope[0].push(typeify(tokenSoFar));
-        progressiveScope[0].push(newScopes)
-        return loop([newScopes, ...progressiveScope], restOfGraphemes, "")
-      case graphemeAtHand === ')':
-        if (tokenSoFar.length > 0)
+        if (tokenSoFar.length > 0) 
           progressiveScope[0].push(typeify(tokenSoFar));
-        return loop(progressiveScope.slice(1), restOfGraphemes, "");
+        progressiveScope[0].push(newScopes);
+        return loop([newScopes, ...progressiveScope], rest, "");
+      case graphemeAtHand === ')':
+        if (tokenSoFar.length > 0) 
+          progressiveScope[0].push(typeify(tokenSoFar));
+        return loop(progressiveScope.slice(1), rest, "");
       default:
-        return loop(progressiveScope, restOfGraphemes, tokenSoFar + graphemeAtHand); 
+        return loop(progressiveScope, rest, tokenSoFar + graphemeAtHand);
     }
   };
+
   return loop([[]], graphemes);
 };
 
-const evaluate = (expression) => {
-  throw new Error("Not implemented");
+const environment = {
+  tone: (frequency, duration) => generatePCM(frequency, duration),
+};
+
+const evaluate = (expr) => {
+  if (Array.isArray(expr)) {
+    if (expr.length === 0) 
+      throw new Error("Cannot evaluate an empty list.");
+    const operator = evaluate(expr[0]);
+    const args = expr.slice(1).map(evaluate);
+    return operator(...args);
+  }
+  if (typeof expr === "symbol") {
+    const name = Symbol.keyFor(expr);
+    if (!(name in environment)) 
+      throw new Error(`Unbound symbol: ${name}`);
+    return environment[name];
+  }
+  return expr;
 };
