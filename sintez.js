@@ -3,7 +3,7 @@ export { encodeWAV, evaluate, generatePCM, run, tokenize, typeify };
 const AMPLITUDE = 32767;
 const SAMPLE_RATE = 44100;
 
-// sample[n]= A ⋅ sin(2 * π * f * (n / R)​)
+// sample[n]= A ⋅ sin(2 * π * f * (n / R))
 
 // Where:
 //   A: Amplitude (max value based on bit depth, e.g., 32767 for 16-bit)
