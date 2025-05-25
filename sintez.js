@@ -148,6 +148,13 @@ const tokenize = (input) => {
 const evaluate = (expression) => {
   if (typeof expression === "number") return expression;
 
+  // Handle the symbols
+  if (typeof expression === "symbol") {
+    throw new Error(
+      `🪈 Error: Unknown symbol ....... \`${Symbol.keyFor(expression)}\``,
+    );
+  }
+
   if (Array.isArray(expression)) {
     const [head, ...rest] = expression;
 
@@ -200,3 +207,9 @@ const run = (input) => {
   const expression = tokens[0];
   return evaluate(expression);
 };
+
+const environment = [
+  // Fill in the commands, such as `tone` and `sequence` here
+  [atom("C0"), 16.35],
+  // Fill in the rest of the notes here
+];
