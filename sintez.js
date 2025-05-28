@@ -1,33 +1,48 @@
 export { encodeWAV, evaluate, generatePCM, tokenize, typeify };
 
-// sample[n]= A ⋅ sin(2 * π * f * (n / R)​)
-
+// sample[n]= A ⋅ sin(2 * π * f * (n / R))
 // Where:
 //   A: Amplitude (max value based on bit depth, e.g., 32767 for 16-bit)
 //   f: Frequency (Hz), e.g., middle C = 261.63 Hz
 //   R: Sample rate (samples per second), typically 44100 Hz
 //   n: Sample number (integer), from 0 to R × duration − 1
 
+function fadeInOut(samples, fadeDuration = 0.01, sampleRate = 44100) {
+  const fadeSamples = Math.floor(fadeDuration * sampleRate);
+
+  for (let i = 0; i < fadeSamples; i++) {
+    const fadeFactor = i / fadeSamples;
+    samples[i] *= fadeFactor;
+    samples[samples.length - 1 - i] *= fadeFactor;
+  }
+
+  return samples;
+}
+
 function generatePCM(frequency, duration) {
   const amplitude = 32767;
   const sampleRate = 44100;
 
   const numSamples = Math.floor(sampleRate * (duration / 1000));
-
   const samples = [];
+
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
     const sample = amplitude * Math.sin(2 * Math.PI * frequency * t);
     samples.push(sample);
   }
 
-  return samples;
+  return fadeInOut(samples);
 }
 
 function sequence(...PCMs) {
-  throw new Error(
-    "🪈 The `sequence` function is not implemented yet.",
-  );
+  const combined = [];
+
+  for (const pcm of PCMs) {
+    combined.push(...pcm);
+  }
+
+  return combined;
 }
 
 async function encodeWAV(
@@ -64,10 +79,7 @@ async function encodeWAV(
     view.setInt16(headerSize + i * 2, samples[i], true);
   }
 
-  await Deno.writeFile(
-    output,
-    new Uint8Array(buffer),
-  );
+  await Deno.writeFile(output, new Uint8Array(buffer));
 }
 
 const typeify = (token) => {
@@ -164,7 +176,8 @@ const evaluate = (expression) => {
       case atom("tone"):
         return generatePCM(...operands);
       case atom("sequence"):
-        return sequence(...operands);
+        const evaluatedPCMs = operands.map(evaluate);
+        return sequence(...evaluatedPCMs);
       default:
         throw new Error(
           `🪈 Error: Unknown operator ....... \`${Symbol.keyFor(operator)}\``,
