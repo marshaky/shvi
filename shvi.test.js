@@ -1,5 +1,6 @@
 import { encodeWAV, evaluate, generatePCM, tokenize } from "./sintez.js";
 
+// Determine which player to use depending on OS
 const determinePlayer = (filePath) => {
   switch (Deno.build.os) {
     case "darwin":
@@ -11,6 +12,7 @@ const determinePlayer = (filePath) => {
   }
 };
 
+// Play a WAV file and remove it afterward
 const play = async (filePath) => {
   const [player, args] = determinePlayer(filePath);
 
@@ -21,7 +23,13 @@ const play = async (filePath) => {
   }).spawn();
 
   await process.output();
-  Deno.removeSync(filePath);
+
+  // Try to remove the file if it exists
+  try {
+    await Deno.remove(filePath);
+  } catch (_) {
+    // ignore if file does not exist
+  }
 };
 
 Deno.test("Playing things", async (t) => {
@@ -32,12 +40,10 @@ Deno.test("Playing things", async (t) => {
       const duration = 1000; // 1 second
 
       const samples = generatePCM(frequency, duration);
-
       encodeWAV(samples);
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
-      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
@@ -45,38 +51,29 @@ Deno.test("Playing things", async (t) => {
   await t.step({
     name: "playing a D4 for two seconds",
     fn: async () => {
-      const music = `
-            (tone 293.66 200)
-          `;
+      const music = `(tone 293.66 2000)`;
 
       const tokens = tokenize(music);
       const samples = evaluate(tokens[0]);
-
       encodeWAV(samples);
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
-      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
 
   await t.step({
-    name:
-      "playing an F4 for one second, a C4 for two seconds, and a G4 for one second",
+    name: "playing an F4 for one second, a C4 for two seconds, and a G4 for one second",
     fn: async () => {
-      const music = `
-                  (sequence (tone 349.23 1000) (tone 261.63 2000) (tone 392.00 1000))
-              `;
+      const music = `(sequence (tone 349.23 1000) (tone 261.63 2000) (tone 392.00 1000))`;
 
       const tokens = tokenize(music);
       const samples = evaluate(tokens[0]);
-
       encodeWAV(samples);
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
-      Deno.removeSync("output.wav");
     },
     ignore: true,
   });
@@ -84,19 +81,14 @@ Deno.test("Playing things", async (t) => {
   await t.step({
     name: "playing the C chord for two seconds /C4, E4, G4/",
     fn: async () => {
-      const music = `
-                  (parallel
-                    (tone 261.63 2000) (tone 329.63 2000) (tone 392.00 2000))
-              `;
+      const music = `(parallel (tone 261.63 2000) (tone 329.63 2000) (tone 392.00 2000))`;
 
       const tokens = tokenize(music);
       const samples = evaluate(tokens[0]);
-
       encodeWAV(samples);
 
       console.log("Playing generated WAV file...");
       await play("output.wav");
-      Deno.removeSync("output.wav");
     },
     ignore: false,
   });

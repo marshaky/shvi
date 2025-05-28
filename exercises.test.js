@@ -21,7 +21,12 @@ Deno.test("Recursion", async (t) => {
       ];
 
       const busServesLine = (line, bus) => {
-        throw new Error("");
+        for (const [lineNumber, buses] of linesAndBuses) {
+          if (lineNumber === line) {
+            return buses.includes(bus);
+          }
+        }
+        return false;
       };
 
       const generalResult = busServesLine(5, 77);
@@ -45,7 +50,13 @@ Deno.test("Recursion", async (t) => {
       // If the first and last characters are not equal, return false
 
       const isPalindrome = (str) => {
-        throw new Error("Not implemented");
+        const cleanStr = str.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const helper = (left, right) => {
+          if (left >= right) return true;
+          if (cleanStr[left] !== cleanStr[right]) return false;
+          return helper(left + 1, right - 1);
+        };
+        return helper(0, cleanStr.length - 1);
       };
 
       const generalResult = isPalindrome("racecar");
@@ -66,7 +77,26 @@ Deno.test("Recursion", async (t) => {
       // Once the current chain is over, check if it is longer than the longest chain and replace if so
 
       const longestRepeatingCharacterChain = (str) => {
-        throw new Error("Not implemented");
+        if (str.length === 0) return "";
+        let longest = "";
+        let currentChar = str[0];
+        let currentCount = 1;
+        let currentStart = 0;
+        for (let i = 1; i <= str.length; i++) {
+          if (i < str.length && str[i] === currentChar) {
+            currentCount++;
+          } else {
+            if (currentCount > longest.length) {
+              longest = str.substring(currentStart, currentStart + currentCount);
+            }
+            if (i < str.length) {
+              currentChar = str[i];
+              currentCount = 1;
+              currentStart = i;
+            }
+          }
+        }
+        return longest;
       };
 
       const generalResult = longestRepeatingCharacterChain("222aabbbbcc");

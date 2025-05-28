@@ -11,73 +11,54 @@ const SAMPLE_RATE = 44100;
 //   R: Sample rate (samples per second), typically 44100 Hz
 //   n: Sample number (integer), from 0 to R × duration − 1
 
-function generatePCM(frequency, duration, offset = 0) {
-  const totalSamples = Math.floor(SAMPLE_RATE * (duration / 1000));
-  const fadeSamples = Math.floor(SAMPLE_RATE * 0.01); // 10ms fade
-  const sustainSamples = totalSamples - 2 * fadeSamples;
+const amplitude = 32767;
+const sampleRate = 44100;
 
-  const generateAttack = (frequency, fadeSamples, offset) => {
+function generatePCM(frequency, duration) {
+  
+  function fadeInPart(frequency, fadeSamples) {
     const samples = [];
     for (let i = 0; i < fadeSamples; i++) {
-      const t = (offset + i) / SAMPLE_RATE;
-      const sample = AMPLITUDE * Math.sin(2 * Math.PI * frequency * t) *
-        (i / fadeSamples);
+      const t = i / sampleRate;
+      const volume = i / fadeSamples;
+      const sample = amplitude * volume * Math.sin(2 * Math.PI * frequency * t);
       samples.push(sample);
     }
     return samples;
-  };
-
-  const generateSustain = (frequency, numSamples, offset) => {
+  }
+  
+  function sustainPart(frequency, sustainSamples, startIndex) {
     const samples = [];
-    for (let i = 0; i < numSamples; i++) {
-      const t = (offset + i) / SAMPLE_RATE;
-      const sample = AMPLITUDE * Math.sin(2 * Math.PI * frequency * t);
+    for (let i = 0; i < sustainSamples; i++) {
+      const t = (startIndex + i) / sampleRate;
+      const sample = amplitude * Math.sin(2 * Math.PI * frequency * t);
       samples.push(sample);
     }
     return samples;
-  };
-
-  const generateDecay = (frequency, fadeSamples, offset) => {
+  }
+  
+  function fadeOutPart(frequency, fadeSamples, startIndex) {
     const samples = [];
-
     for (let i = 0; i < fadeSamples; i++) {
-      const t = (offset + i) / SAMPLE_RATE;
-      const sample = AMPLITUDE * Math.sin(2 * Math.PI * frequency * t) *
-        ((fadeSamples - i) / fadeSamples);
+      const t = (startIndex + i) / sampleRate;
+      const volume = (fadeSamples - i) / fadeSamples;
+      const sample = amplitude * volume * Math.sin(2 * Math.PI * frequency * t);
       samples.push(sample);
     }
-
     return samples;
-  };
+  }
 
-  const attack = generateAttack(frequency, fadeSamples, offset);
-  const sustain = generateSustain(
-    frequency,
-    sustainSamples,
-    offset + fadeSamples,
-  );
-  const decay = generateDecay(
-    frequency,
-    fadeSamples,
-    offset + fadeSamples + sustainSamples,
-  );
+  const totalSamples = Math.floor(sampleRate * (duration / 1000));
+  const fadeSamples = Math.floor(totalSamples / 10);
+  const sustainSamples = totalSamples - fadeSamples * 2;
 
-  const samples = new Int16Array([...attack, ...sustain, ...decay]);
+  const fadeIn = fadeInPart(frequency, fadeSamples);
+  const sustain = sustainPart(frequency, sustainSamples, fadeSamples);
+  const fadeOut = fadeOutPart(frequency, fadeSamples, fadeSamples + sustainSamples);
 
-  return samples;
+  return [...fadeIn, ...sustain, ...fadeOut];
 }
 
-function sequence(...PCMs) {
-  const totalSamples = PCMs.reduce((acc, pcm) => acc + pcm.length, 0);
-  const combinedSamples = new Int16Array(totalSamples);
-
-  PCMs.reduce((offset, pcm) => {
-    combinedSamples.set(pcm, offset);
-    return offset + pcm.length;
-  }, 0);
-
-  return combinedSamples;
-}
 
 async function encodeWAV(
   samples,
@@ -120,110 +101,87 @@ async function encodeWAV(
 }
 
 const typeify = (token) => {
-  const parsedNumber = Number.parseFloat(token, 10);
-  return Number.isNaN(parsedNumber) ? Symbol.for(token) : parsedNumber;
+  if (!isNaN(token)) return parseFloat(token);
+  return atom(token);
 };
 
 const atom = (name) => Symbol.for(name);
 
+
+
 const tokenize = (input) => {
-  const graphemes = Array.from(input.trim());
-
+  if (input.trim() === "") return [];
   const loop = (
-    progressiveScope,
-    [graphemeAtHand, ...restOfGraphemes],
-    tokenSoFar = "",
+    stack,
+    [char, ...rest],
+    token = "",
   ) => {
-    const [currentScope, parentScope, ...outerScopes] = progressiveScope;
-
-    if (!graphemeAtHand) {
-      return tokenSoFar.length > 0
-        ? [...currentScope, typeify(tokenSoFar)]
-        : currentScope;
+    if (char === undefined) {
+      if (token) stack[stack.length - 1].push(typeify(token));
+      return stack[0];
     }
 
-    switch (graphemeAtHand) {
-      case "(": {
-        const updatedCurrentScope = tokenSoFar.length > 0
-          ? [...currentScope, typeify(tokenSoFar)]
-          : currentScope;
-
-        const newProgressiveScope = parentScope
-          ? [[], updatedCurrentScope, parentScope, ...outerScopes]
-          : [[], updatedCurrentScope, ...outerScopes];
-
-        return loop(
-          newProgressiveScope,
-          restOfGraphemes,
-        );
-      }
-      case ")": {
-        const updatedCurrentScope = tokenSoFar.length > 0
-          ? [...currentScope, typeify(tokenSoFar)]
-          : currentScope;
-
-        const innerHead = parentScope
-          ? [...parentScope, updatedCurrentScope]
-          : updatedCurrentScope;
-
-        const newProgressiveScope = [
-          innerHead,
-          ...outerScopes,
-        ];
-
-        return loop(newProgressiveScope, restOfGraphemes, "");
-      }
-      case " ": {
-        const updatedCurrentScope = tokenSoFar.length > 0
-          ? [...currentScope, typeify(tokenSoFar)]
-          : currentScope;
-
-        const newProgressiveScope = [
-          updatedCurrentScope,
-          parentScope,
-          ...outerScopes,
-        ];
-
-        return loop(
-          newProgressiveScope,
-          restOfGraphemes,
-        );
-      }
-      default:
-        return loop(
-          progressiveScope,
-          restOfGraphemes,
-          tokenSoFar + graphemeAtHand,
-        );
+    if (char === "(") {
+      const newList = [];
+      stack[stack.length - 1].push(newList);
+      stack.push(newList);
+      return loop(stack, rest, "");
     }
+
+    if (char === ")") {
+      if (token) stack[stack.length - 1].push(typeify(token));
+      stack.pop();
+      return loop(stack, rest, "");
+    }
+
+    if (char === " " || char === "\n" || char === "\t") {
+      if (token) stack[stack.length - 1].push(typeify(token));
+      return loop(stack, rest, "");
+    }
+
+    return loop(stack, rest, token + char);
   };
 
-  return loop([[]], graphemes);
+  return loop([[]], [...input]);
 };
 
 const evaluate = (expression) => {
-  if (typeof expression === "number") {
-    return expression;
-  }
+  if (typeof expression === "number") return expression;
 
   if (Array.isArray(expression)) {
-    const [operator, ...operands] = expression;
+    const [head, ...rest] = expression;
 
-    switch (operator) {
-      case atom("tone"):
-        return generatePCM(...operands);
-      case atom("sequence"):
-        return sequence(...operands.map(evaluate));
-      case atom("parallel"): {
-        throw new Error(
-          "🪈 Error: Parallel operator is not implemented yet.",
-        );
-      }
-      default:
-        throw new Error(
-          `🪈 Error: Unknown operator ....... \`${Symbol.keyFor(operator)}\``,
-        );
+    if (head === Symbol.for("tone")) {
+      const [freq, dur] = rest;
+      return generatePCM(freq, dur);
     }
+
+    if (head === Symbol.for("sequence")) {
+      return rest.map(evaluate).flat();
+    }
+
+    if (head === Symbol.for("parallel")) {
+      const tones = rest.map(evaluate);
+      const maxLength = Math.max(...tones.map(t => t.length));
+
+      const padded = tones.map(t => {
+        const missing = maxLength - t.length;
+        return t.concat(new Array(missing).fill(0));
+      });
+
+      const result = [];
+      for (let i = 0; i < maxLength; i++) {
+        let sum = 0;
+        for (const t of padded) {
+          sum += t[i];
+        }
+        result.push(sum / padded.length);
+      }
+
+      return result;
+    }
+
+    throw new Error("Unknown command: " + head.toString());
   }
 };
 
