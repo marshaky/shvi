@@ -1,8 +1,5 @@
 export { encodeWAV, evaluate, generatePCM, run, tokenize, typeify };
 
-const AMPLITUDE = 32767;
-const SAMPLE_RATE = 44100;
-
 // sample[n]= A ⋅ sin(2 * π * f * (n / R))
 
 // Where:
@@ -17,6 +14,7 @@ const sampleRate = 44100;
 function generatePCM(frequency, duration) {
   
   function fadeInPart(frequency, fadeSamples) {
+    console.log(frequency)
     const samples = [];
     for (let i = 0; i < fadeSamples; i++) {
       const t = i / sampleRate;
@@ -58,7 +56,6 @@ function generatePCM(frequency, duration) {
 
   return [...fadeIn, ...sustain, ...fadeOut];
 }
-
 
 async function encodeWAV(
   samples,
@@ -107,8 +104,6 @@ const typeify = (token) => {
 
 const atom = (name) => Symbol.for(name);
 
-
-
 const tokenize = (input) => {
   if (input.trim() === "") return [];
   const loop = (
@@ -145,14 +140,23 @@ const tokenize = (input) => {
   return loop([[]], [...input]);
 };
 
-const evaluate = (expression) => {
-  if (typeof expression === "number") return expression;
+const findSymbol = (symbol) =>
+{
+  console.log(symbol)
+  const entry = environment.find(([key]) => key === symbol);
+  if (!entry)
+    throw new Error(`Unknown symbol: ${atom(symbol)}`);
+  return entry[1];
+}
 
+const evaluate = (expression) => {
+  if (typeof expression === "number")
+    return expression;
+  console.log(expression)
   // Handle the symbols
   if (typeof expression === "symbol") {
-    throw new Error(
-      `🪈 Error: Unknown symbol ....... \`${Symbol.keyFor(expression)}\``,
-    );
+    console.log(expression)
+    return findSymbol(expression);
   }
 
   if (Array.isArray(expression)) {
@@ -197,7 +201,6 @@ const evaluate = (expression) => {
 
       return result;
     }
-
     throw new Error("Unknown command: " + head.toString());
   }
 };
@@ -209,7 +212,110 @@ const run = (input) => {
 };
 
 const environment = [
-  // Fill in the commands, such as `tone` and `sequence` here
   [atom("C0"), 16.35],
-  // Fill in the rest of the notes here
+  [atom("C#0"), 17.32],
+  [atom("D0"), 18.35],
+  [atom("D#0"), 19.45],
+  [atom("E0"), 20.60],
+  [atom("F0"), 21.83],
+  [atom("F#0"), 23.12],
+  [atom("G0"), 24.50],
+  [atom("G#0"), 25.96],
+  [atom("A0"), 27.50],
+  [atom("A#0"), 29.14],
+  [atom("B0"), 30.87],
+  
+  [atom("C1"), 32.70],
+  [atom("C#1"), 34.65],
+  [atom("D1"), 36.71],
+  [atom("D#1"), 38.89],
+  [atom("E1"), 41.20],
+  [atom("F1"), 43.65],
+  [atom("F#1"), 46.25],
+  [atom("G1"), 49.00],
+  [atom("G#1"), 51.91],
+  [atom("A1"), 55.00],
+  [atom("A#1"), 58.27],
+  [atom("B1"), 61.74],
+  
+  [atom("C2"), 65.41],
+  [atom("C#2"), 69.30],
+  [atom("D2"), 73.42],
+  [atom("D#2"), 77.78],
+  [atom("E2"), 82.41],
+  [atom("F2"), 87.31],
+  [atom("F#2"), 92.50],
+  [atom("G2"), 98.00],
+  [atom("G#2"), 103.83],
+  [atom("A2"), 110.00],
+  [atom("A#2"), 116.54],
+  [atom("B2"), 123.47],
+  
+  [atom("C3"), 130.81],
+  [atom("C#3"), 138.59],
+  [atom("D3"), 146.83],
+  [atom("D#3"), 155.56],
+  [atom("E3"), 164.81],
+  [atom("F3"), 174.61],
+  [atom("F#3"), 185.00],
+  [atom("G3"), 196.00],
+  [atom("G#3"), 207.65],
+  [atom("A3"), 220.00],
+  [atom("A#3"), 233.08],
+  [atom("B3"), 246.94],
+  
+  [atom("C4"), 261.63],
+  [atom("C#4"), 277.18],
+  [atom("D4"), 293.66],
+  [atom("D#4"), 311.13],
+  [atom("E4"), 329.63],
+  [atom("F4"), 349.23],
+  [atom("F#4"), 369.99],
+  [atom("G4"), 392.00],
+  [atom("G#4"), 415.30],
+  [atom("A4"), 440.00],
+  [atom("A#4"), 466.16],
+  [atom("B4"), 493.88],
+  
+  [atom("C5"), 523.25],
+  [atom("C#5"), 554.37],
+  [atom("D5"), 587.33],
+  [atom("D#5"), 622.25],
+  [atom("E5"), 659.26],
+  [atom("F5"), 698.46],
+  [atom("F#5"), 739.99],
+  [atom("G5"), 783.99],
+  [atom("G#5"), 830.61],
+  [atom("A5"), 880.00],
+  [atom("A#5"), 932.33],
+  [atom("B5"), 987.77],
+  
+  [atom("C6"), 1046.50],
+  [atom("C#6"), 1108.73],
+  [atom("D6"), 1174.66],
+  [atom("D#6"), 1244.51],
+  [atom("E6"), 1318.51],
+  [atom("F6"), 1396.91],
+  [atom("F#6"), 1479.98],
+  [atom("G6"), 1567.98],
+  [atom("G#6"), 1661.22],
+  [atom("A6"), 1760.00],
+  [atom("A#6"), 1864.66],
+  [atom("B6"), 1975.53],
+  
+  [atom("C7"), 2093.00],
+  [atom("C#7"), 2217.46],
+  [atom("D7"), 2349.32],
+  [atom("D#7"), 2499.02],
+  [atom("E7"), 2637.02],
+  [atom("F7"), 2793.83],
+  [atom("F#7"), 2959.96],
+  [atom("G7"), 3135.96],
+  [atom("G#7"), 3322.44],
+  [atom("A7"), 3520.00],
+  [atom("A#7"), 3729.31],
+  [atom("B7"), 3951.07],
+  
+  [atom("C8"), 4186.01]
+  
 ];
