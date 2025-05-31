@@ -159,6 +159,16 @@ const evaluate = (expression) => {
     if (head === Symbol.for("sequence")) {
       return rest.map(evaluate).flat();
     }
+    
+    if (head === Symbol.for("repeat")) {
+      const [count, expr] = rest;
+      const evaluated = evaluate(expr);
+      let output = [];
+      for (let i = 0; i < count; i++) {
+        output = output.concat(evaluated);
+      }
+      return output;
+    }
 
     if (head === Symbol.for("parallel")) {
       const tones = rest.map(evaluate);

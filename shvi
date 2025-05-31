@@ -36,7 +36,7 @@ async function main() {
   } else {
     encodeWAV(samples, "output.wav");
 
-    const process = new Deno.Command("aplay", {
+    const process = new Deno.Command("afplay", {
       args: ["output.wav"],
       stdout: "inherit",
       stderr: "inherit",
